@@ -1,0 +1,8 @@
+.git
+.idea
+.agents
+.codex
+venv
+__pycache__
+build
+out

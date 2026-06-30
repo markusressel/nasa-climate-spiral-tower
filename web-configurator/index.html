@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NASA Climate Spiral 3D Tower Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Load Three.js and OrbitControls from CDN -->
+    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar controls -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                    <h1 style="flex: 1; margin: 0; font-size: 1.5rem;">NASA Climate Spiral Tower</h1>
+                    <button class="btn-reset-all" onclick="resetAllConfigurationOptions()" style="padding: 4px 8px; font-size: 11px; border-radius: var(--radius-sm); border: 1px solid rgba(220, 38, 38, 0.4); color: #ef4444; background: rgba(220, 38, 38, 0.1); cursor: pointer; transition: all 0.2s; font-weight: 600;" title="Reset all settings to defaults">Reset All</button>
+                </div>
+                <p style="margin-top: 8px;">An interactive, 3D-printable modular data physicalization tool mapping global surface temperature anomalies (1880–2025).</p>
+            </div>
+            
+            <div class="tab-nav">
+                <button class="tab-btn active" onclick="switchTab('tab-view')">3D Model</button>
+                <button class="tab-btn" onclick="switchTab('tab-info')">Dataset Info</button>
+            </div>
+            
+            <div class="settings-content">
+                <!-- Tab 1: 3D View Settings & Parametric CAD Specs -->
+                <div id="tab-view" class="tab-pane active">
+                    <div class="settings-card">
+                        <div class="section-title">Display Settings</div>
+                        
+                        <div class="control-group">
+                            <div class="control-header">
+                                <label class="control-label" for="param-mode">Display Mode</label>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px; width: 100%;">
+                                <select id="param-mode" onchange="updateModel()" style="flex: 1; margin: 0;">
+                                    <optgroup label="Disks Layout">
+                                        <option value="stack">Stacked Tower (All Years)</option>
+                                        <option value="single">Single Year Disk</option>
+                                        <option value="grid">Grid Layout (Tray)</option>
+                                    </optgroup>
+                                    <optgroup label="Mounting Hardware">
+                                        <option value="base">Aesthetic Base Plate</option>
+                                    </optgroup>
+                                </select>
+                                <button class="btn-reset-param" onclick="resetParam('mode')" title="Reset display mode to default">↺</button>
+                            </div>
+                        </div>
+                        
+                        <div class="control-group" id="group-year-range" style="display:none;">
+                            <div class="control-header">
+                                <label class="control-label" id="label-year-range">Year Range</label>
+                                <div class="control-value-container">
+                                    <input type="number" id="val-start-year-num" min="1880" max="2025" value="1880" class="control-number-input start-year-input">
+                                    <span class="year-range-separator" style="font-size: 12px; color: var(--text-muted); font-weight: 500;">-</span>
+                                    <input type="number" id="val-active-year-num" min="1880" max="2025" value="2024" class="control-number-input">
+                                    <button class="btn-reset-param" onclick="resetParam('startYear'); resetParam('activeYear');" title="Reset year range to default">↺</button>
+                                </div>
+                            </div>
+                            <div class="horizontal-slider-track-container" style="position: relative; width: 100%; height: 20px; display: flex; align-items: center; margin-top: 6px;">
+                                <!-- Track line background -->
+                                <div style="position: absolute; left: 0; width: 100%; height: 6px; background: rgba(255, 255, 255, 0.15); border-radius: 3px; z-index: 1;"></div>
+                                <!-- Highlight track line between the two thumbs -->
+                                <div id="horizontal-slider-track-highlight" style="position: absolute; height: 6px; background: var(--accent); border-radius: 3px; z-index: 2;"></div>
+                                <!-- Two sliders overlayed -->
+                                <input type="range" id="param-start-year" min="1880" max="2025" value="1880" step="1" oninput="updateStartYear(this.value)" style="z-index: 3;">
+                                <input type="range" id="param-active-year" min="1880" max="2025" value="2024" step="1" oninput="updateActiveYear(this.value)" style="z-index: 4;">
+                            </div>
+                        </div>
+                        
+                        <div class="control-group" id="group-explode">
+                            <div class="control-header">
+                                <label class="control-label" for="param-explode">Explode Stack</label>
+                                <div class="control-value-container">
+                                    <input type="number" id="val-explode-num" min="0" max="150" step="0.5" value="0" class="control-number-input">
+                                    <span class="control-unit">mm</span>
+                                    <button class="btn-reset-param" onclick="resetParam('explode')" title="Reset explode to default">↺</button>
+                                </div>
+                            </div>
+                            <input type="range" id="param-explode" min="0" max="150" value="0" step="0.5" oninput="updateExplode(this.value)">
+                        </div>
+                        
+                    </div>
+
+                    <div class="settings-card" id="card-custom-palette">
+                        <div class="section-title">Filament Palette</div>
+                        <p class="card-desc">Partition the temperature range into discrete filament colors for multi-color printing.</p>
+                        
+                        <div class="control-group">
+                            <div class="control-header">
+                                <label class="control-label" for="param-theme">Color System</label>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
+                                <select id="param-theme" style="flex: 1; margin: 0; padding: 6px 10px; font-size: 12.5px;">
+                                    <option value="classic">Warming Scale (Blue-White-Red)</option>
+                                    <option value="thermal">NASA Climate Spiral</option>
+                                    <option value="magma">Magma</option>
+                                    <option value="viridis">Viridis</option>
+                                    <option value="single">Single Filament</option>
+                                </select>
+                                <button class="btn btn-accent" onclick="applyColorSystem()" style="padding: 6px 12px; font-size: 12px; font-weight: 600; white-space: nowrap; margin: 0; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm);" id="btn-apply-theme">Apply</button>
+                                <button class="btn-reset-param" onclick="resetParam('theme'); resetParam('filamentColor');" title="Reset color settings to defaults" style="margin: 0; padding: 2px;">↺</button>
+                            </div>
+                        </div>
+
+                        <div class="control-group" id="group-filament-color" style="display:none; margin-top: 8px;">
+                            <div class="control-header">
+                                <label class="control-label" for="param-filament-color">Filament Color</label>
+                                <div class="control-value-container">
+                                    <span class="control-value" id="val-filament-color">#E2E8F0</span>
+                                </div>
+                            </div>
+                            <div class="color-picker-container" style="margin-top: 6px;">
+                                <div class="color-input-wrapper" style="width: 100%; height: 32px; border-radius: var(--radius-sm); overflow: hidden;">
+                                    <input type="color" id="param-filament-color" value="#e2e8f0" onchange="updateFilamentColor()" style="width: 100%; height: 100%; border: none; padding: 0; cursor: pointer;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="palette-controls">
+                            <div class="control-group">
+                                <div class="control-header">
+                                    <label class="control-label" for="param-palette-size">Number of Colors</label>
+                                    <div class="control-value-container">
+                                        <input type="number" id="val-palette-size-num" min="1" max="16" value="4" class="control-number-input" onchange="updatePaletteSize(this.value, 'num')">
+                                        <button class="btn-reset-param" onclick="resetParam('customColors')" title="Reset colors to default">↺</button>
+                                    </div>
+                                </div>
+                                <input type="range" id="param-palette-size" min="1" max="16" value="4" step="1" oninput="updatePaletteSize(this.value, 'slider')">
+                            </div>
+                            
+                            <!-- Dynamic Color Swatches -->
+                            <div id="palette-swatches" class="palette-swatches-grid">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-card">
+                        <div class="section-title">Mechanical Dimensions</div>
+                        
+                        <div class="control-group">
+                            <div class="control-header">
+                                <label class="control-label" for="param-hub-diameter">Structural Hub Diameter</label>
+                                <div class="control-value-container">
+                                    <input type="number" id="val-hub-diameter-num" min="10" max="40" step="0.5" value="18" class="control-number-input">
+                                    <span class="control-unit">mm</span>
+                                    <button class="btn-reset-param" onclick="resetParam('hubDiameter')" title="Reset hub diameter to default">↺</button>
+                                </div>
+                            </div>
+                            <input type="range" id="param-hub-diameter" min="10" max="40" value="18" step="0.5" oninput="updateCADParam('hub-diameter', this.value)">
+                        </div>
+                        
+                        <div class="control-group">
+                            <div class="control-header">
+                                <label class="control-label" for="param-thickness">Disk Thickness</label>
+                                <div class="control-value-container">
+                                    <input type="number" id="val-thickness-num" min="1" max="10" step="0.2" value="2.0" class="control-number-input">
+                                    <span class="control-unit">mm</span>
+                                    <button class="btn-reset-param" onclick="resetParam('thickness')" title="Reset thickness to default">↺</button>
+                                </div>
+                            </div>
+                            <input type="range" id="param-thickness" min="1" max="10" value="2.0" step="0.2" oninput="updateCADParam('thickness', this.value)">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header">
+                                <label class="control-label" for="param-arm-width">Arm Width</label>
+                                <div class="control-value-container">
+                                    <input type="number" id="val-arm-width-num" min="1.0" max="12.0" step="0.1" value="4.0" class="control-number-input">
+                                    <span class="control-unit">mm</span>
+                                    <button class="btn-reset-param" onclick="resetParam('armWidth')" title="Reset arm width to default">↺</button>
+                                </div>
+                            </div>
+                            <input type="range" id="param-arm-width" min="1.0" max="12.0" value="4.0" step="0.1" oninput="updateCADParam('arm-width', this.value)">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header">
+                                <label class="control-label" for="param-cross-thickness">Cross Thickness</label>
+                                <div class="control-value-container">
+                                    <input type="number" id="val-cross-thickness-num" min="1.0" max="12.0" step="0.1" value="2.0" class="control-number-input">
+                                    <span class="control-unit">mm</span>
+                                    <button class="btn-reset-param" onclick="resetParam('crossThickness')" title="Reset cross thickness to default">↺</button>
+                                </div>
+                            </div>
+                            <input type="range" id="param-cross-thickness" min="1.0" max="12.0" value="2.0" step="0.1" oninput="updateCADParam('cross-thickness', this.value)">
+                        </div>
+                    </div>
+                    
+                    <div class="settings-card">
+                        <div class="section-title">Data Mapping</div>
+                        
+                        <div class="control-group">
+                            <div class="control-header">
+                                <label class="control-label" for="param-baseline">Baseline Radius (0.0°C)</label>
+                                <div class="control-value-container">
+                                    <input type="number" id="val-baseline-num" min="15" max="60" step="1" value="30" class="control-number-input">
+                                    <span class="control-unit">mm</span>
+                                    <button class="btn-reset-param" onclick="resetParam('baseline')" title="Reset baseline radius to default">↺</button>
+                                </div>
+                            </div>
+                            <input type="range" id="param-baseline" min="15" max="60" value="30" step="1" oninput="updateCADParam('baseline', this.value)">
+                        </div>
+                        
+                        <div class="control-group">
+                            <div class="control-header">
+                                <label class="control-label" for="param-scale">Temperature Scale Factor</label>
+                                <div class="control-value-container">
+                                    <input type="number" id="val-scale-num" min="3" max="25" step="0.5" value="16.5" class="control-number-input">
+                                    <span class="control-unit">mm/°C</span>
+                                    <button class="btn-reset-param" onclick="resetParam('scale')" title="Reset scale factor to default">↺</button>
+                                </div>
+                            </div>
+                            <input type="range" id="param-scale" min="3" max="25" value="16.5" step="0.5" oninput="updateCADParam('scale', this.value)">
+                        </div>
+                    </div>
+
+                    <div class="settings-card">
+                        <div class="section-title">Label Settings</div>
+
+                        <div class="control-group">
+                            <div class="control-header">
+                                <label class="control-label" for="param-label-size">Label Size</label>
+                                <div class="control-value-container">
+                                    <input type="number" id="val-label-size-num" min="2" max="40" step="0.5" value="4.0" class="control-number-input">
+                                    <span class="control-unit">mm</span>
+                                    <button class="btn-reset-param" onclick="resetParam('labelSize')" title="Reset label size to default">↺</button>
+                                </div>
+                            </div>
+                            <input type="range" id="param-label-size" min="2" max="40" value="4.0" step="0.5" oninput="updateCADParam('label-size', this.value)">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header">
+                                <label class="control-label" for="param-label-depth">Label Depth</label>
+                                <div class="control-value-container">
+                                    <input type="number" id="val-label-depth-num" min="0.2" max="2.0" step="0.1" value="1.2" class="control-number-input">
+                                    <span class="control-unit">mm</span>
+                                    <button class="btn-reset-param" onclick="resetParam('labelTextDepth')" title="Reset label depth to default">↺</button>
+                                </div>
+                            </div>
+                            <input type="range" id="param-label-depth" min="0.2" max="2.0" value="1.2" step="0.1" oninput="updateCADParam('label-depth', this.value)">
+                        </div>
+
+                        <div class="control-group">
+                            <div class="control-header">
+                                <label class="control-label" for="param-label-font">Label Font</label>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 4px; width: 100%;">
+                                <select id="param-label-font" style="flex: 1; margin: 0;">
+                                    <option value="Liberation Sans:style=Bold">Liberation Sans Bold</option>
+                                    <option value="Liberation Sans:style=Regular">Liberation Sans Regular</option>
+                                    <option value="Liberation Serif:style=Bold">Liberation Serif Bold</option>
+                                    <option value="DejaVu Sans:style=Book">DejaVu Sans Book</option>
+                                </select>
+                                <button class="btn-reset-param" onclick="resetParam('labelFont')" title="Reset label font to default">↺</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tab 3: Dataset Info -->
+                <div id="tab-info" class="tab-pane">
+                    <div class="settings-card">
+                        <div class="section-title">Source Metadata</div>
+                        <div class="info-item">
+                            <span class="info-label">Dataset:</span>
+                            <span class="info-val">GISTEMP v4</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Publisher:</span>
+                            <span class="info-val">NASA GISS</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Base Period:</span>
+                            <span class="info-val">1951-1980 Mean</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Coverage:</span>
+                            <span class="info-val" id="info-coverage">1880 - 2025</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Total Years:</span>
+                            <span class="info-val" id="info-total-years">146</span>
+                        </div>
+                    </div>
+                    <div class="settings-card">
+                        <div class="section-title">Anomalies Explained</div>
+                        <p class="card-desc" style="color: var(--text-secondary); margin-bottom: 8px;">
+                            Values represent the deviation from the long-term average temperature. A value of +1.0°C means the temperature was 1.0 degree Celsius warmer than the 1951-1980 average.
+                        </p>
+                        <p class="card-desc" style="color: var(--text-secondary);">
+                            Early records (1880-1920) exhibit cold anomalies (blue, shrinking radius), while recent years display escalating warm anomalies (red, expanding radius).
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- WebGL Viewport -->
+        <div class="viewport-container">
+            <div id="canvas-container"></div>
+            
+            <!-- Vertical Height/Year Scrubber Slider -->
+            <div class="height-scrubber-container">
+                <div class="height-scrubber-labels">
+                    <span class="scrubber-label-top" id="scrubber-max-label">2025</span>
+                    <span class="scrubber-label-middle">Tower Height</span>
+                    <span class="scrubber-label-bottom" id="scrubber-min-label">1880</span>
+                </div>
+                <div class="vertical-slider-track-container" style="position: relative; width: 24px; height: 100%; display: flex; justify-content: center;">
+                    <!-- Track line background -->
+                    <div style="position: absolute; left: 50%; transform: translateX(-50%); width: 6px; height: 100%; background: rgba(255, 255, 255, 0.15); border-radius: 3px; z-index: 1;"></div>
+                    <!-- Highlight track line between the two thumbs -->
+                    <div id="vertical-slider-track-highlight" style="position: absolute; left: 50%; transform: translateX(-50%); width: 6px; background: var(--accent); border-radius: 3px; z-index: 2;"></div>
+                    <!-- Two sliders overlayed -->
+                    <input type="range" id="height-start-slider" min="1880" max="2025" value="1880" step="1" orient="vertical" oninput="updateHeightStartScrubber(this.value)" title="Start Year" style="z-index: 3;">
+                    <input type="range" id="height-slider" min="1880" max="2025" value="2025" step="1" orient="vertical" oninput="updateHeightScrubber(this.value)" title="End Year" style="z-index: 4;">
+                </div>
+            </div>
+            
+            <!-- Floating Animation Control Bar -->
+            <div class="overlay-anim-controls" id="overlay-anim-controls">
+                <button class="btn btn-primary btn-play-overlay" id="btn-play-overlay" onclick="togglePlay()">
+                    <span class="btn-icon">▶</span> Play Timelapse
+                </button>
+                <button class="btn" onclick="resetCamera()" style="padding: 10px 14px; border-radius: var(--radius-md);">
+                    <span class="btn-icon">↺</span> Camera
+                </button>
+                <div class="anim-speed-control">
+                    <span class="speed-label">Speed</span>
+                    <input type="range" id="param-speed-overlay" min="20" max="400" value="60" step="10" style="width: 85px; margin: 0;" oninput="updatePlaySpeed(this.value)">
+                </div>
+            </div>
+
+            <div class="model-loading-overlay" id="model-loading-overlay">
+                <div class="model-loading-spinner" aria-hidden="true"></div>
+                <div class="model-loading-text" id="model-loading-text">Building model...</div>
+                <div class="model-loading-subtext" id="model-loading-subtext">Preparing geometry...</div>
+            </div>
+            
+            <!-- Floating Download Controls Overlay (Bottom-Right) -->
+            <div class="overlay-downloads">
+                <button class="btn btn-accent btn-download-overlay" id="btn-download-stl" onclick="triggerContextDownload()">
+                    <span class="btn-icon">💾</span> Download STL
+                </button>
+            </div>
+            
+
+            <!-- Floating Dimensions Display Overlay (Top-Center) -->
+            <div class="overlay-dimensions" id="dimensions-display">
+                Model Size: -- × -- × -- mm
+            </div>
+            
+            <!-- Legend overlay -->
+            <div class="legend">
+                <span class="legend-title">Temperature Anomaly Scale</span>
+                <div class="legend-scale">
+                    <span class="legend-label" id="legend-min">-0.5°C</span>
+                    <div class="legend-gradient" id="legend-gradient"></div>
+                    <span class="legend-label" id="legend-max">+1.2°C</span>
+                </div>
+            </div>
+            
+            <!-- Hover card details -->
+            <div class="year-details-card" id="details-card">
+                <div class="card-header">
+                    <span class="card-year" id="card-year">2024</span>
+                    <span class="card-anomaly neutral" id="card-anomaly">+1.18°C</span>
+                </div>
+                <div>
+                    <span class="legend-title">Monthly Profile</span>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-grid"></div>
+                    <svg class="mini-chart" id="chart-svg"></svg>
+                </div>
+                <div class="monthly-grid">
+                    <span>J</span><span>F</span><span>M</span><span>A</span><span>M</span><span>J</span><span>J</span><span>A</span><span>S</span><span>O</span><span>N</span><span>D</span>
+                </div>
+            </div>
+            
+            <!-- Double-click/Orbit instructions overlay -->
+            <div class="instructions-overlay" id="instructions">
+                <h2>NASA Climate Tower 3D</h2>
+                <p>Explore the physicalization of global warming. Rotate the camera, zoom to inspect individual years, or play the time-lapse to watch the tower assemble.</p>
+                <div class="instructions-keys">
+                    <div><span class="key-badge">Left Drag</span> Rotate</div>
+                    <div><span class="key-badge">Right Drag</span> Pan</div>
+                    <div><span class="key-badge">Scroll</span> Zoom</div>
+                </div>
+            </div>
+            
+            <!-- Simple Tooltip -->
+            <div class="canvas-tooltip" id="canvas-tooltip">2024</div>
+        </div>
+    </div>
+    
+    <script src="app-state.js"></script>
+    <script src="app-data.js"></script>
+    <script src="app-colors.js"></script>
+    <script src="app-scene.js"></script>
+    <script src="app-geometry.js"></script>
+    <script src="app-authoritative.js"></script>
+    <script src="app-model.js"></script>
+    <script src="app-export.js"></script>
+    <script src="app-ui.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
