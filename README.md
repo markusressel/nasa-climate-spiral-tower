@@ -41,7 +41,11 @@ Download the latest climate anomalies and generate the default OpenSCAD and Web 
 python3 main.py
 ```
 
-*No external dependencies are required. The script uses Python's standard libraries.*
+No external dependencies are required, **but** we need openscad available on the cli to embed the "Year Label" text into the 3D model for each ring.
+If you don't have OpenSCAD installed, you can either:
+
+* Install OpenSCAD on your system and ensure it's available in your PATH.
+* Use the provided Docker image (see below) which includes OpenSCAD.
 
 ### 2. Launch the Web Visualizer
 
