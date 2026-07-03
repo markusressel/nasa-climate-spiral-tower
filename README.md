@@ -154,3 +154,9 @@ the inner edge of the current disk. To improve this further, we could:
 
 Alternatively, come up with a more clever way to align the disks in X and Y, that doesn't require four massive arms crossing through the center of everything. 
 
+# Honorary Mentions
+
+- [NASA GISTEMP v4](https://data.giss.nasa.gov/gistemp/) for the authoritative global temperature anomaly dataset.
+- [Climate Spiral](https://svs.gsfc.nasa.gov/5190/) for the original animated spiral visualization.
+- [fahrstuhl](https://github.com/fahrstuhl) for giving me the idea.
+
