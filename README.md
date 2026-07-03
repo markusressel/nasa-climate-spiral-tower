@@ -33,31 +33,7 @@ time ($1880 \to \text{present}$), making climate change directly tangible.
 
 ## 🚀 Quick Start
 
-### 1. Set Up and Run the Python Engine
-
-Download the latest climate anomalies and generate the default OpenSCAD and Web visualizer assets:
-
-```bash
-python3 main.py
-```
-
-No external dependencies are required, **but** we need openscad available on the cli to embed the "Year Label" text into the 3D model for each ring.
-If you don't have OpenSCAD installed, you can either:
-
-* Install OpenSCAD on your system and ensure it's available in your PATH.
-* Use the provided Docker image (see below) which includes OpenSCAD.
-
-### 2. Launch the Web Visualizer
-
-Spin up a local server by running:
-
-```bash
-python3 main.py --serve-web --web-port 8000
-```
-
-Then visit `http://localhost:8000/web-configurator/` in your browser.
-
-### 3. Run in Docker
+### Run in Docker
 
 The Docker image includes the full Python 3.13 slim environment, the OpenSCAD CLI, and system fonts (Liberation Sans/Serif) for rendering authoritative 3D text labels.
 
@@ -163,13 +139,6 @@ The web configurator now attempts to load these authoritative STL meshes first, 
 
 # TODOs
 
-## Python Backend (prio 1)
-
-### Keep SCAD logic unified
-
-Continue consolidating geometry behavior in [scad_core](climate_spiral/scad_core.py) so both [scad_export](climate_spiral/scad_export.py) and
-[openscad_authoritative](climate_spiral/openscad_authoritative.py) stay in sync without drift.
-
 ## The 3D Model (prio 3)
 
 ### Save even more material
@@ -185,6 +154,3 @@ the inner edge of the current disk. To improve this further, we could:
 
 Alternatively, come up with a more clever way to align the disks in X and Y, that doesn't require four massive arms crossing through the center of everything. 
 
-## Push git to remote
-
-Select a remote location (GitHub probably) and push.
