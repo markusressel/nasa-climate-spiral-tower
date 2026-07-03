@@ -45,8 +45,7 @@ python3 main.py
 
 ### 2. Launch the Web Visualizer
 
-Open [index.html](web-configurator/index.html) directly in any web browser by double-clicking it.
-Alternatively, spin up a local server:
+Spin up a local server by running:
 
 ```bash
 python3 main.py --serve-web --web-port 8000
