@@ -6,6 +6,8 @@ modular, physical 3D-printable annual "disks."
 When stacked sequentially using an integrated cross plug-and-socket interface, these annual rings form a physical, tactile tower. The varying outer contours model global warming over
 time ($1880 \to \text{present}$), making climate change directly tangible.
 
+<img src="./screenshots/web-configurator.webp" alt="NASA Climate Spiral Tower" width="600"/>
+
 ---
 
 ## 📁 Directory Structure
